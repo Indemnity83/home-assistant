@@ -1,0 +1,116 @@
+blueprint:
+  name: Motion Nightlight
+  description: >
+    A simplified motion-activated light that turns on with a smooth fade if ambient light 
+    is below a lux threshold (i.e. it's dark). Designed especially for the 
+    [ThirdReality Multifunction Night Light](https://amzn.to/42qSZyK) 
+    (affiliate link). 
+
+    Changes from original:
+    - Removed time-based day/night logic
+    - Uses lux threshold only to determine if light should activate
+    - Single brightness, color temp, and delay values
+
+  domain: automation
+  input:
+    motion_entity:
+      name: Motion Sensor
+      selector:
+        entity:
+          domain: binary_sensor
+          device_class: motion
+    light_target:
+      name: Light
+      selector:
+        target:
+          entity:
+            domain: light
+    brightness:
+      name: Brightness (%)
+      default: 50
+      selector:
+        number:
+          min: 1
+          max: 100
+          step: 1
+    color_temp:
+      name: Color Temperature
+      default: 370
+      selector:
+        select:
+          options:
+            - label: "Warm White (2700K)"
+              value: 370
+            - label: "Soft White (3000K)"
+              value: 333
+            - label: "Neutral White (3500K)"
+              value: 286
+            - label: "Cool White (4000K)"
+              value: 250
+            - label: "Daylight (5000K)"
+              value: 200
+    transition_seconds:
+      name: Transition Duration (seconds)
+      default: 3
+      selector:
+        number:
+          min: 1
+          max: 60
+          unit_of_measurement: s
+    no_motion_wait:
+      name: Wait time after no motion
+      default: 120
+      selector:
+        number:
+          min: 1
+          max: 3600
+          unit_of_measurement: seconds
+    illuminance_sensor:
+      name: Illuminance Sensor
+      selector:
+        entity:
+          domain: sensor
+          device_class: illuminance
+    illuminance_cutoff:
+      name: Lux Cutoff (max ambient light)
+      default: 30
+      selector:
+        number:
+          min: 0
+          max: 1000
+          unit_of_measurement: lx
+
+mode: restart
+max_exceeded: silent
+
+trigger:
+  platform: state
+  entity_id: !input motion_entity
+  from: "off"
+  to: "on"
+
+condition:
+  - condition: numeric_state
+    entity_id: !input illuminance_sensor
+    below: !input illuminance_cutoff
+
+action:
+  - service: light.turn_on
+    data:
+      brightness_pct: !input brightness
+      color_temp: !input color_temp
+      transition: !input transition_seconds
+    target: !input light_target
+
+  - wait_for_trigger:
+      platform: state
+      entity_id: !input motion_entity
+      from: "on"
+      to: "off"
+
+  - delay: !input no_motion_wait
+
+  - service: light.turn_off
+    data:
+      transition: !input transition_seconds
+    target: !input light_target
