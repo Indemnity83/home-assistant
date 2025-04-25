@@ -35,20 +35,24 @@ blueprint:
           step: 1
     color_temp:
       name: Color Temperature
-      default: 370
+      default: "370"
       selector:
         select:
           options:
+            - label: "Candlelight (1800K)"
+              value: "500"
+            - label: "Ultra Warm (2200K)"
+              value: "460"
             - label: "Warm White (2700K)"
-              value: 370
+              value: "370"
             - label: "Soft White (3000K)"
-              value: 333
+              value: "333"
             - label: "Neutral White (3500K)"
-              value: 286
+              value: "286"
             - label: "Cool White (4000K)"
-              value: 250
+              value: "250"
             - label: "Daylight (5000K)"
-              value: 200
+              value: "200"
     transition_seconds:
       name: Transition Duration (seconds)
       default: 3
