@@ -3,7 +3,7 @@ blueprint:
   description: >
     Adjusts HVAC based on door/window status, net consumption, A/C load, available power, and occupancy.
     - Turns off HVAC if any doors/windows are open for 5 minutes.
-    - If abundant power is available, sets to 70°F.
+    - If abundant power is available, it cools to a preset temperature.
     - If nobody is home or power is not abundant, sets HVAC to eco.
   domain: automation
   input:
@@ -22,6 +22,17 @@ blueprint:
       selector:
         entity:
           domain: climate
+    cooling_setpoint:
+      name: Cooling Setpoint Temperature
+      description: Desired temperature (°F) to cool to when abundant power is available. Default is 70°F.
+      default: 70
+      selector:
+        number:
+          min: 60
+          max: 80
+          step: 1
+          unit_of_measurement: "°F"
+          mode: box
     outside_temperature:
       name: Outside Temperature Sensor
       selector:
@@ -136,7 +147,7 @@ action:
             target:
               entity_id: "{{ climate_device_id }}"
             data:
-              temperature: 70
+              temperature: !input cooling_setpoint
 
       - conditions: []
         sequence:
