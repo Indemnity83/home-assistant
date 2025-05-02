@@ -1,0 +1,151 @@
+blueprint:
+  name: Whole House Fan Controller
+  description: >
+    Controls a whole house fan based on door/window status and temperature conditions.
+    - Turns off the fan if no doors/windows are open.
+    - Turns off the fan if outdoor temperature is higher than indoor temperature.
+    - Turns off the fan if indoor temperature is rising, indicating cooling is no longer effective.
+    - Turns off the fan if the indoor temperature reaches or falls below the target temperature.
+    - Turns on the fan if outdoor temperature is cooler than indoor temperature and windows are open.
+    - Notifies you if the fan could be cooling but no windows/doors are open.
+    - Notifies you when the fan is turned off due to outdoor air being too warm, or indoor temperature rising.
+    - Runs every 5 minutes, providing efficient control to avoid excessive on/off toggling.
+  domain: automation
+  input:
+    doors_and_windows:
+      name: Doors and Windows
+      description: Exterior doors and windows that should be open
+      selector:
+        entity:
+          multiple: true
+          domain: binary_sensor
+          device_class:
+            - door
+            - window
+
+    fan_device:
+      name: Whole House Fan
+      selector:
+        entity:
+          domain:
+            - fan
+            - switch
+
+    outside_temperature:
+      name: Outside Temperature Sensor
+      selector:
+        entity:
+          domain: sensor
+
+    outside_temp_trend:
+      name: Outside Temperature Trend Sensor
+      description: Binary sensor that is 'on' when rising, 'off' when falling
+      selector:
+        entity:
+          domain: binary_sensor
+
+    indoor_temperature:
+      name: Indoor Temperature Sensor
+      selector:
+        entity:
+          domain: sensor
+
+    inside_temp_trend:
+      name: Inside Temperature Trend Sensor
+      description: Binary sensor that is 'on' when rising, 'off' when falling
+      selector:
+        entity:
+          domain: binary_sensor
+
+    target_temperature:
+      name: Target Temperature
+      default: 70
+      selector:
+        number:
+          min: 60
+          max: 80
+          step: 1
+          unit_of_measurement: °F
+          mode: box
+
+mode: single
+
+trigger:
+  - platform: time_pattern
+    minutes: "/5"  # Check every 5 minutes
+
+condition: []
+
+action:
+  - variables:
+      doors_and_windows_ids: !input doors_and_windows
+      fan_device_id: !input fan_device
+      outside_temperature_id: !input outside_temperature
+      outside_temp_trend_id: !input outside_temp_trend
+      inside_temp_trend_id: !input inside_temp_trend
+      indoor_temperature_id: !input indoor_temperature
+      target_temp: !input target_temperature
+
+      open_windows: >
+        {{ expand(doors_and_windows_ids) | selectattr('state', 'eq', 'on') | list | count > 0 }}
+      indoor: "{{ states(indoor_temperature_id) | float(0) }}"
+      outdoor: "{{ states(outside_temperature_id) | float(0) }}"
+      outdoor_trend_rising: "{{ is_state(outside_temp_trend_id, 'on') }}"
+      indoor_trend_rising: "{{ is_state(inside_temp_trend_id, 'on') }}"
+
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ outdoor < (indoor - 5) and not open_windows and not outdoor_trend_rising }}"
+        sequence:
+          - service: notify.notify
+            data:
+              message: >
+                Whole House Fan could be cooling, but no doors or windows are open. Please open a window.
+
+      - conditions:
+          - condition: template
+            value_template: "{{ not open_windows }}"
+        sequence:
+          - service: homeassistant.turn_off
+            target:
+              entity_id: "{{ fan_device_id }}"
+
+      - conditions:
+          - condition: template
+            value_template: "{{ outdoor > indoor and is_state(fan_device_id, 'on') }}"
+        sequence:
+          - service: homeassistant.turn_off
+            target:
+              entity_id: "{{ fan_device_id }}"
+          - service: notify.notify
+            data:
+              message: >
+                Whole House Fan turned off because outdoor temperature ({{ outdoor | round(1) }}°F) is warmer than indoors ({{ indoor | round(1) }}°F). Cooling with outside air is no longer effective.
+
+      - conditions:
+          - condition: template
+            value_template: >
+              {{ is_state(fan_device_id, 'on') and (indoor_trend_rising or indoor <= target_temp) }}
+        sequence:
+          - service: homeassistant.turn_off
+            target:
+              entity_id: "{{ fan_device_id }}"
+          - service: notify.notify
+            data:
+              message: >
+                Whole House Fan turned off because the indoor temperature ({{ indoor | round(1) }}°F) is at or below the target of ({{ target_temp | round(1) }}°F)°F, or the indoor temperature is rising.
+
+      - conditions:
+          - condition: template
+            value_template: "{{ outdoor < indoor and open_windows }}"
+        sequence:
+          - service: homeassistant.turn_on
+            target:
+              entity_id: "{{ fan_device_id }}"
+
+      - conditions: []
+        sequence:
+          - service: homeassistant.turn_off
+            target:
+              entity_id: "{{ fan_device_id }}"
