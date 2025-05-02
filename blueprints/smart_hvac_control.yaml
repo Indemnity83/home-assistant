@@ -104,6 +104,9 @@ action:
       net_consumption: "{{ states(net_consumption_id) | float(0) }}"
       hvac_action: "{{ state_attr(climate_device_id, 'hvac_action') }}"
       occupancy: "{{ is_state(occupancy_entity_id, 'on') }}"
+      current_mode: "{{ states(climate_device_id, 'hvac_mode') }}"
+      current_preset: "{{ state_attr(climate_device_id, 'hvac_preset') }}"
+      current_temp: "{{ state_attr(climate_device_id, 'temperature') }}"
 
       adjusted_consumption: >
         {% if hvac_action == 'cooling' %}
@@ -118,41 +121,61 @@ action:
           - condition: template
             value_template: "{{ any_open }}"
         sequence:
-          - service: climate.set_hvac_mode
-            target:
-              entity_id: "{{ climate_device_id }}"
-            data:
-              hvac_mode: "off"
+          - if:
+              - condition: template
+                value_template: "{{ current_mode != 'off' }}"
+            then:
+              - service: climate.set_hvac_mode
+                target:
+                  entity_id: "{{ climate_device_id }}"
+                data:
+                  hvac_mode: "off"
 
       - conditions:
           - condition: template
             value_template: "{{ not occupancy }}"
         sequence:
-          - service: climate.set_preset_mode
-            target:
-              entity_id: "{{ climate_device_id }}"
-            data:
-              preset_mode: "eco"
+          - if:
+              - condition: template
+                value_template: "{{ current_preset != 'eco' }}"
+            then:
+              - service: climate.set_preset_mode
+                target:
+                  entity_id: "{{ climate_device_id }}"
+                data:
+                  preset_mode: "eco"
 
       - conditions:
           - condition: template
             value_template: "{{ abundant_power_available }}"
         sequence:
-          - service: climate.set_hvac_mode
-            target:
-              entity_id: "{{ climate_device_id }}"
-            data:
-              hvac_mode: "cool"
-          - service: climate.set_temperature
-            target:
-              entity_id: "{{ climate_device_id }}"
-            data:
-              temperature: !input cooling_setpoint
+          - if:
+              - condition: template
+                value_template: "{{ current_mode != 'cool' }}"
+            then:
+              - service: climate.set_hvac_mode
+                target:
+                  entity_id: "{{ climate_device_id }}"
+                data:
+                  hvac_mode: "cool"
+          - if:
+              - condition: template
+                value_template: "{{ current_temp != 70 }}"
+            then:
+              - service: climate.set_temperature
+                target:
+                  entity_id: "{{ climate_device_id }}"
+                data:
+                  temperature: !input cooling_setpoint
 
       - conditions: []
         sequence:
-          - service: climate.set_preset_mode
-            target:
-              entity_id: "{{ climate_device_id }}"
-            data:
-              preset_mode: "eco"
+          - if:
+              - condition: template
+                value_template: "{{ current_preset != 'eco' }}"
+            then:
+              - service: climate.set_preset_mode
+                target:
+                  entity_id: "{{ climate_device_id }}"
+                data:
+                  preset_mode: "eco"
