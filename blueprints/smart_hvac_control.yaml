@@ -1,0 +1,147 @@
+blueprint:
+  name: Smart HVAC Controller
+  description: >
+    Adjusts HVAC based on door/window status, net consumption, A/C load, available power, and occupancy.
+    - Turns off HVAC if any doors/windows are open for 5 minutes.
+    - If abundant power is available, sets to 70°F.
+    - If nobody is home or power is not abundant, sets HVAC to eco.
+  domain: automation
+  input:
+    doors_and_windows:
+      name: Doors and Windows
+      description: Exterior doors and windows that should be closed
+      selector:
+        entity:
+          multiple: true
+          domain: binary_sensor
+          device_class:
+            - door
+            - window
+    climate_device:
+      name: Thermostat
+      selector:
+        entity:
+          domain: climate
+    outside_temperature:
+      name: Outside Temperature Sensor
+      selector:
+        entity:
+          domain: sensor
+    net_consumption:
+      name: Net Consumption Sensor
+      description: Net power consumption (W); negative = exporting
+      selector:
+        entity:
+          domain: sensor
+    ac_load_input:
+      name: A/C Load (Watts)
+      description: Typical power draw of the A/C unit when cooling. Default is 3500.
+      default: 3500
+      selector:
+        number:
+          min: 0
+          max: 10000
+          step: 100
+          unit_of_measurement: W
+          mode: box
+    abundant_power_threshold:
+      name: Abundant Power Threshold (Watts)
+      description: Minimum export surplus required to consider power "abundant". Default is 500.
+      default: 500
+      selector:
+        number:
+          min: 0
+          max: 2000
+          step: 50
+          unit_of_measurement: W
+          mode: box
+    occupancy_entity:
+      name: Occupancy Sensor
+      description: Binary sensor or switch; 'on' means someone is home
+      selector:
+        entity:
+          domain:
+            - binary_sensor
+            - input_boolean
+
+mode: single
+
+trigger:
+  - platform: template
+    for: "00:05:00"
+    value_template: >
+      {{ expand( (inputs.doors_and_windows) ) | selectattr('state', 'eq', 'on') | list | count > 0 }}
+  - platform: state
+    entity_id:
+      - !input climate_device
+      - !input net_consumption
+      - !input outside_temperature
+      - !input occupancy_entity
+
+condition: []
+
+action:
+  - variables:
+      doors_and_windows_ids: !input doors_and_windows
+      climate_device_id: !input climate_device
+      net_consumption_id: !input net_consumption
+      occupancy_entity_id: !input occupancy_entity
+      ac_load: !input ac_load_input
+      abundant_power_threshold_val: !input abundant_power_threshold
+
+      any_open: "{{ expand(doors_and_windows_ids) | selectattr('state', 'eq', 'on') | list | count > 0 }}"
+      net_consumption: "{{ states(net_consumption_id) | float(0) }}"
+      hvac_action: "{{ state_attr(climate_device_id, 'hvac_action') }}"
+      occupancy: "{{ is_state(occupancy_entity_id, 'on') }}"
+
+      adjusted_consumption: >
+        {% if hvac_action == 'cooling' %}
+          {{ net_consumption + ac_load }}
+        {% else %}
+          {{ net_consumption }}
+        {% endif %}
+      abundant_power_available: "{{ adjusted_consumption <= -abundant_power_threshold_val }}"
+
+  - choose:
+      - conditions:
+          - condition: template
+            value_template: "{{ any_open }}"
+        sequence:
+          - service: climate.set_hvac_mode
+            target:
+              entity_id: "{{ climate_device_id }}"
+            data:
+              hvac_mode: "off"
+
+      - conditions:
+          - condition: template
+            value_template: "{{ not occupancy }}"
+        sequence:
+          - service: climate.set_preset_mode
+            target:
+              entity_id: "{{ climate_device_id }}"
+            data:
+              preset_mode: "eco"
+
+      - conditions:
+          - condition: template
+            value_template: "{{ abundant_power_available }}"
+        sequence:
+          - service: climate.set_hvac_mode
+            target:
+              entity_id: "{{ climate_device_id }}"
+            data:
+              hvac_mode: "cool"
+          - service: climate.set_temperature
+            target:
+              entity_id: "{{ climate_device_id }}"
+            data:
+              temperature: 70
+
+      - conditions: []
+        sequence:
+          - service: climate.set_preset_mode
+            target:
+              entity_id: "{{ climate_device_id }}"
+            data:
+              preset_mode: "eco"
