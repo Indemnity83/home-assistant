@@ -1,0 +1,122 @@
+alias: Shutdown Area
+description: >
+  Shuts down one or more areas: turns off lights, fans, media players, and closes
+  shades (unless the corresponding window sensor indicates open).
+mode: parallel
+
+fields:
+  target_area:
+    name: Areas
+    description: The areas to shut down
+    required: true
+    selector:
+      area:
+        multiple: true
+
+  shutdown_options:
+    name: Subsystems
+    description: Select which subsystems to shut down
+    default:
+      - lights
+      - fans
+      - media
+      - blinds
+    selector:
+      select:
+        multiple: true
+        options:
+          - label: Lights
+            value: lights
+          - label: Fans
+            value: fans
+          - label: Media Players
+            value: media
+          - label: Blinds
+            value: blinds
+
+sequence:
+  - alias: 🔌 Turn off lights in the selected areas
+    if:
+      - condition: template
+        value_template: "{{ 'lights' in shutdown_options }}"
+    then:
+      - target:
+          area_id: "{{ target_area }}"
+        action: light.turn_off
+        continue_on_error: true
+
+  - alias: 🌬 Turn off fans in the selected areas
+    if:
+      - condition: template
+        value_template: "{{ 'fans' in shutdown_options }}"
+    then:
+      - target:
+          area_id: "{{ target_area }}"
+        action: fan.turn_off
+        continue_on_error: true
+
+  - alias: 🎵 Stop media players in the selected areas
+    if:
+      - condition: template
+        value_template: "{{ 'media' in shutdown_options }}"
+    then:
+      - repeat:
+          for_each: "{{ target_area }}"
+          sequence:
+            - variables:
+                area_id: "{{ repeat.item }}"
+                media_entities: >-
+                  {{ expand(area_entities(area_id))
+                     | selectattr('entity_id', 'search', '^media_player\\.')
+                     | map(attribute='entity_id')
+                     | list }}
+            - repeat:
+                for_each: "{{ media_entities }}"
+                sequence:
+                  - target:
+                      entity_id: "{{ repeat.item }}"
+                    action: media_player.unjoin
+                    continue_on_error: true
+                  - target:
+                      entity_id: "{{ repeat.item }}"
+                    action: media_player.media_stop
+                    continue_on_error: true
+
+  - alias: 🪟 Close shades in the selected areas
+    if:
+      - condition: template
+        value_template: "{{ 'blinds' in shutdown_options }}"
+    then:
+      - repeat:
+          for_each: "{{ target_area }}"
+          sequence:
+            - variables:
+                area_id: "{{ repeat.item }}"
+                shade_entities: >-
+                  {{ expand(area_entities(area_id))
+                     | selectattr('entity_id', 'search', '^cover\\.')
+                     | selectattr('attributes.device_class', 'equalto', 'shade')
+                     | map(attribute='entity_id')
+                     | list }}
+            - repeat:
+                for_each: "{{ shade_entities }}"
+                sequence:
+                  - variables:
+                      cover_entity: "{{ repeat.item }}"
+                      base_name: "{{ cover_entity.split('.')[-1] }}"
+                      # Assumes a window sensor named binary_sensor.<cover_base_name>
+                      window_sensor: "{{ 'binary_sensor.' ~ base_name }}"
+                  - if:
+                      - condition: or
+                        conditions:
+                          # If the window sensor doesn't exist / is unavailable, treat as safe to close
+                          - condition: template
+                            value_template: "{{ not has_value(window_sensor) }}"
+                          # If it exists and is 'off' (closed), then close the shade
+                          - condition: template
+                            value_template: "{{ is_state(window_sensor, 'off') }}"
+                    then:
+                      - target:
+                          entity_id: "{{ cover_entity }}"
+                        action: cover.close_cover
+                        continue_on_error: true
