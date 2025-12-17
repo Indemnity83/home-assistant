@@ -1,0 +1,95 @@
+alias: Secure Area
+description: >
+  Secures one or more areas: locks locks, closes garage doors, and sends
+  notifications if any windows or exterior doors are left open.
+mode: parallel
+
+fields:
+  target_area:
+    name: Areas
+    description: The areas to secure
+    required: true
+    selector:
+      area:
+        multiple: true
+
+  notify_service:
+    name: Notify service
+    description: Notification service to use (e.g., notify.notify, notify.mobile_app_phone)
+    default: notify.notify
+    selector:
+      text:
+
+sequence:
+  - alias: 🪟 Notify open windows in selected areas
+    repeat:
+      for_each: "{{ target_area }}"
+      sequence:
+        - variables:
+            area_id: "{{ repeat.item }}"
+            open_windows: >-
+              {{ expand(area_entities(area_id))
+                 | selectattr('entity_id', 'search', '^binary_sensor\\.')
+                 | selectattr('attributes.device_class', 'equalto', 'window')
+                 | selectattr('state', '==', 'on')
+                 | map(attribute='entity_id')
+                 | list }}
+        - repeat:
+            for_each: "{{ open_windows }}"
+            sequence:
+              - action: "{{ notify_service }}"
+                data:
+                  message: "{{ states[repeat.item].name }} is open"
+                continue_on_error: true
+
+  - alias: 🚪 Notify open exterior doors in selected areas
+    repeat:
+      for_each: "{{ target_area }}"
+      sequence:
+        - variables:
+            area_id: "{{ repeat.item }}"
+            open_exterior_doors: >-
+              {{ expand(area_entities(area_id))
+                 | selectattr('entity_id', 'search', '^binary_sensor\\.')
+                 | selectattr('attributes.device_class', 'equalto', 'door')
+                 | selectattr('attributes.labels', 'defined')
+                 | selectattr('attributes.labels', 'contains', 'exterior_door')
+                 | selectattr('state', '==', 'on')
+                 | map(attribute='entity_id')
+                 | list }}
+        - repeat:
+            for_each: "{{ open_exterior_doors }}"
+            sequence:
+              - action: "{{ notify_service }}"
+                data:
+                  message: "{{ states[repeat.item].name }} is open"
+                continue_on_error: true
+
+  - alias: 🚘 Close garage doors in the selected areas
+    repeat:
+      for_each: "{{ target_area }}"
+      sequence:
+        - variables:
+            area_id: "{{ repeat.item }}"
+            garage_covers: >-
+              {{ expand(area_entities(area_id))
+                 | selectattr('entity_id', 'search', '^cover\\.')
+                 | selectattr('attributes.device_class', 'equalto', 'garage')
+                 | map(attribute='entity_id')
+                 | list }}
+        - repeat:
+            for_each: "{{ garage_covers }}"
+            sequence:
+              - target:
+                  entity_id: "{{ repeat.item }}"
+                action: cover.close_cover
+                continue_on_error: true
+
+  - alias: 🔒 Lock locks in the selected areas
+    repeat:
+      for_each: "{{ target_area }}"
+      sequence:
+        - target:
+            area_id: "{{ repeat.item }}"
+          action: lock.lock
+          continue_on_error: true
