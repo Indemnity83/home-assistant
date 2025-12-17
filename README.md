@@ -2,6 +2,28 @@
 
 A collection of my Home Assistant blueprints, automation helpers, and configuration snippets that I've found useful and wanted to share with the community.
 
+## 🧩 Scripts
+
+### 🏠 Area Shutdown & Secure Scripts
+
+A pair of composable, area-based scripts designed to manage whole-home state changes without duplicating logic across automations.
+
+These scripts live in the `/scripts` directory and are intended to be used as building blocks for higher-level automations such as *Goodnight*, *Goodbye*, *Work Time*, or *Kids in Bed*.
+
+**Included scripts:**
+- **Shutdown Area** – powers down selected subsystems (lights, fans, media players, shades)
+- **Secure Area** – secures selected areas (locks, garage doors) and notifies on open windows or exterior doors
+
+Both scripts are:
+- Area-driven (no hardcoded entity IDs)
+- Option-based (behavior changes based on inputs)
+- Designed for reuse across automations
+
+📄 Full documentation, assumptions, and usage examples are available in:
+```
+/scripts/README.md
+```
+
 ---
 
 ## 🧠 Blueprints
@@ -22,6 +44,7 @@ This blueprint intelligently manages your thermostat based on occupancy, door/wi
 ## 📁 Repo Structure
 
 - `blueprints/` — reusable automation blueprints for various smart devices and triggers  
+- `scripts/` — reusable, area-based scripts with full documentation and examples  
 - `automations/` — longer automations or YAML snippets not structured as blueprints  
 - `config/` — reusable configuration helpers or templates  
 
