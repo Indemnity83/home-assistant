@@ -1,7 +1,16 @@
-alias: Secure Area
-description: >
-  Secures one or more areas: locks locks, closes garage doors, and sends
-  notifications if any windows or exterior doors are left open.
+blueprint:
+  name: Secure Area
+  description: >
+    Secures one or more areas: locks locks, closes garage doors, and sends
+    notifications if any windows or exterior doors are left open.
+
+    This script is designed to be called from automations and other scripts as a
+    building block for whole-home state management (Goodnight, Goodbye, etc.).
+
+    Requires the 'exterior_door' label to be applied to exterior door sensors.
+  domain: script
+  input: {}
+
 mode: parallel
 
 fields:

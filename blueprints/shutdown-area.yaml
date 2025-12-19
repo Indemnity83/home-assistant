@@ -1,7 +1,14 @@
-alias: Shutdown Area
-description: >
-  Shuts down one or more areas: turns off lights, fans, media players, and closes
-  shades (unless the corresponding window sensor indicates open).
+blueprint:
+  name: Shutdown Area
+  description: >
+    Shuts down one or more areas: turns off lights, fans, media players, and closes
+    shades (unless the corresponding window sensor indicates open).
+
+    This script is designed to be called from automations and other scripts as a
+    building block for whole-home state management (Goodnight, Goodbye, etc.).
+  domain: script
+  input: {}
+
 mode: parallel
 
 fields:

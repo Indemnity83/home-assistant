@@ -2,51 +2,37 @@
 
 A collection of my Home Assistant blueprints, automation helpers, and configuration snippets that I've found useful and wanted to share with the community.
 
-## 🧩 Scripts
-
-### 🏠 Area Shutdown & Secure Scripts
-
-A pair of composable, area-based scripts designed to manage whole-home state changes without duplicating logic across automations.
-
-These scripts live in the `/scripts` directory and are intended to be used as building blocks for higher-level automations such as *Goodnight*, *Goodbye*, *Work Time*, or *Kids in Bed*.
-
-**Included scripts:**
-- **Shutdown Area** – powers down selected subsystems (lights, fans, media players, shades)
-- **Secure Area** – secures selected areas (locks, garage doors) and notifies on open windows or exterior doors
-
-Both scripts are:
-- Area-driven (no hardcoded entity IDs)
-- Option-based (behavior changes based on inputs)
-- Designed for reuse across automations
-
-📄 Full documentation, assumptions, and usage examples are available in:
-```
-/scripts/README.md
-```
-
----
-
 ## 🧠 Blueprints
 
-### [🔦 Motion Nightlight](https://github.com/Indemnity83/home-assistant/blob/main/blueprints/motion_nightlight.yaml)
+All blueprints support one-click import and automatic updates. Click the badges below to import, or visit the **[Wiki](../../wiki)** for detailed documentation, examples, and troubleshooting.
 
-This blueprint turns on a light with a smooth transition when motion is detected **and** the ambient light is below a configurable lux threshold. Designed with the [ThirdReality Multifunction Night Light](https://amzn.to/42qSZyK) in mind.
+### Script Blueprints
 
-[![Open your Home Assistant instance and show the blueprint import dialog with a specific blueprint pre-filled.](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fraw.githubusercontent.com%2FIndemnity83%2Fhome-assistant%2Frefs%2Fheads%2Fmain%2Fblueprints%2Fmotion_nightlight.yaml)
+Composable building blocks for whole-home state management. Import these to create callable scripts that can be used from your automations.
 
-### [❄️ Smart HVAC Control](https://github.com/Indemnity83/home-assistant/blob/main/blueprints/smart_hvac_control.yaml)
+| Blueprint | Description | Import |
+|-----------|-------------|--------|
+| **[🛑 Shutdown Area](../../wiki/Shutdown-Area)** | Powers down subsystems (lights, fans, media, shades) in selected areas | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fraw.githubusercontent.com%2FIndemnity83%2Fhome-assistant%2Frefs%2Fheads%2Fmain%2Fblueprints%2Fshutdown-area.yaml) |
+| **[🔒 Secure Area](../../wiki/Secure-Area)** | Locks doors, closes garages, notifies on open windows/doors | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fraw.githubusercontent.com%2FIndemnity83%2Fhome-assistant%2Frefs%2Fheads%2Fmain%2Fblueprints%2Fsecure-area.yaml) |
 
-This blueprint intelligently manages your thermostat based on occupancy, door/window status, and solar power availability. If a door or window is left open, it turns off the HVAC. When power is abundant (e.g. from solar), it cools to a preset temperature. Otherwise, or if nobody is home, it switches to eco mode. Designed for homes with solar and smart climate control.
+### Automation Blueprints
 
-[![Open your Home Assistant instance and show the blueprint import dialog with a specific blueprint pre-filled.](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fraw.githubusercontent.com%2FIndemnity83%2Fhome-assistant%2Frefs%2Fheads%2Fmain%2Fblueprints%2Fsmart_hvac_control.yaml)
+Ready-to-use automations for common smart home scenarios.
+
+| Blueprint | Description | Import |
+|-----------|-------------|--------|
+| **[🔦 Motion Nightlight](../../wiki/Motion-Nightlight)** | Lux-based motion lighting with smooth transitions | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fraw.githubusercontent.com%2FIndemnity83%2Fhome-assistant%2Frefs%2Fheads%2Fmain%2Fblueprints%2Fmotion_nightlight.yaml) |
+| **[❄️ Smart HVAC Control](../../wiki/Smart-HVAC-Control)** | Solar-aware climate control with occupancy detection | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fraw.githubusercontent.com%2FIndemnity83%2Fhome-assistant%2Frefs%2Fheads%2Fmain%2Fblueprints%2Fsmart_hvac_control.yaml) |
+| **[🌬️ Whole House Fan](../../wiki/Whole-House-Fan-Controller)** | Temperature-based whole house fan automation | [![Import](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fraw.githubusercontent.com%2FIndemnity83%2Fhome-assistant%2Frefs%2Fheads%2Fmain%2Fblueprints%2Fwhole_house_fan_controller.yaml) |
+
 ---
 
 ## 📁 Repo Structure
 
-- `blueprints/` — reusable automation blueprints for various smart devices and triggers  
-- `scripts/` — reusable, area-based scripts with full documentation and examples  
-- `automations/` — longer automations or YAML snippets not structured as blueprints  
-- `config/` — reusable configuration helpers or templates  
+- `blueprints/` — reusable automation and script blueprints
+  - Automation blueprints (motion_nightlight.yaml, smart_hvac_control.yaml, etc.)
+  - Script blueprints (shutdown-area.yaml, secure-area.yaml)
+  - Full documentation in blueprints/README.md
 
 This repo is intended to grow over time with more blueprints, integrations, and useful automations.
 
